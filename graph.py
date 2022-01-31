@@ -1,11 +1,11 @@
-from stack_queue import LinkedListStack, LinkedListQueue
+from stack_queue import Stack, Queue
 
 
 class Graph:
     def __init__(self, V):
         self.V = V
         self.E = 0
-        self.adj = [[] for _ in range(V)]  # should have used a list of bags
+        self.adj = [[] for _ in range(V)]
 
     def add_edge(self, v, w):
         self.adj[v].append(w)
@@ -49,6 +49,39 @@ class Digraph:
         return s
 
 
+class SymbolGraph(Graph):
+    def __init__(self, keys):
+        '''
+        For symbol digraph, the implementation is similar
+        '''
+        self.keys = list(set(keys))
+        self.V = len(self.keys)
+        self.st = {self.keys[i]: i for i in range(self.V)}  # symbol table
+        super().__init__(self.V)
+
+    def index(self, key):
+        return self.st.get(key)
+
+    def name(self, i):
+        return self.keys[i]
+
+    def add_edge(self, v, w):
+        v = self.index(v)
+        w = self.index(w)
+        self.adj[v].append(w)
+        self.adj[w].append(v)
+        self.E += 1
+
+    def __str__(self):
+        s = f'{self.V} vertices, {self.E} edges\n'
+        for v in range(self.V):
+            s += str(self.name(v)) + ': '
+            for w in self.adj[v]:
+                s += str(self.name(w)) + ' '
+            s += '\n'
+        return s
+
+
 class DFS:
     def __init__(self, G, s):
         self.G = G
@@ -64,10 +97,10 @@ class DFS:
         in time proportional to the sum of the degrees of all vertices connected to s
         '''
         self.marked[v] = True
-        self.count += 1
         for w in self.G.adj[v]:
             if not self.marked[w]:
                 self.edge_to[w] = v
+                self.count += 1
                 self.dfs(w)
 
     def has_path_to(self, v):
@@ -76,7 +109,7 @@ class DFS:
     def path_to(self, v):
         if not self.has_path_to(v):
             return None
-        path = LinkedListStack()
+        path = Stack()
         while v != self.s:
             path.push(v)
             v = self.edge_to[v]
@@ -97,7 +130,7 @@ class BFS:
         self.G = G
         self.s = s
         self.marked = [False] * G.V
-        self.edge_to = [False] * G.V
+        self.edge_to = [None] * G.V
         self.bfs(s)
 
     def bfs(self, s):
@@ -106,7 +139,7 @@ class BFS:
         put on queue all the unmarked vertices adjacent to it
         in time proportional to O(E + V) = O(1 + e) * O(V)
         '''
-        q = LinkedListQueue()
+        q = Queue()
         q.enqueue(self.s)
         self.marked[s] = True
         while not q.is_empty():
@@ -123,7 +156,7 @@ class BFS:
     def path_to(self, v):
         if not self.has_path_to(v):
             return None
-        path = LinkedListStack()
+        path = Stack()
         while v != self.s:
             path.push(v)
             v = self.edge_to[v]
@@ -143,7 +176,7 @@ class Cycle:
     def __init__(self, G):
         self.G = G
         self.marked = [False] * G.V
-        self.edge_to = [0] * G.V
+        self.edge_to = [None] * G.V
         self.has_cycle = False
         for s in range(G.V):
             if not self.marked[s]:
@@ -167,8 +200,8 @@ class DirectedCycle:
     def __init__(self, G):
         self.G = G
         self.marked = [False] * G.V
-        self.cycle = LinkedListStack()
-        self.edge_to = [0] * G.V
+        self.cycle = Stack()
+        self.edge_to = [None] * G.V
         self.on_stack = [False] * G.V
         for s in range(G.V):
             if not self.marked[s]:
@@ -196,6 +229,7 @@ class DirectedCycle:
                 self.cycle.push(w)
                 self.cycle.push(v)
         self.on_stack[v] = False
+        return
 
     def has_cycle(self):
         return not self.cycle.is_empty()
@@ -204,30 +238,32 @@ class DirectedCycle:
 class DepthFirstOrder:
     def __init__(self, G):
         self.G = G
-        self.reverse_post = LinkedListStack()
+        self.pre = Queue()
+        self.post = Queue()
+        self.reverse_post = Stack()
         self.marked = [False] * G.V
         for s in range(G.V):
             if not self.marked[s]:
                 self.dfs(s)
-    
+
     def dfs(self, v):
+        self.pre.enqueue(v)
         self.marked[v] = True
         for w in self.G.adj[v]:
             if not self.marked[w]:
                 self.dfs(w)
+        self.post.enqueue(v)
         self.reverse_post.push(v)
 
 
 class TopologicalSort:
     def __init__(self, G):
-        self.order = None
-        self.G = G
-        self.directed_cycle = DirectedCycle(G)
-        if not self.directed_cycle.has_cycle():
-            self.order = DepthFirstOrder(G).reverse_post
+        dc = DirectedCycle(G)
+        assert not dc.has_cycle(), f"directed cycle detected: {dc.cycle}"
+        self.reverse_post = DepthFirstOrder(G).reverse_post
 
-    def is_dag(self):
-        return self.order is not None
+    def order(self):
+        return self.reverse_post
 
 
 class ConnectedComponent:

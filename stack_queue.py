@@ -4,41 +4,10 @@ class Node:
         self.next = next
 
 
-class LinkedList:
-    def __init__(self):
-        self.first = None
-
-    def is_empty(self):
-        return self.first is None
-    
-    def push(self, item):
-        # add in the beginning
-        self.first = Node(item, self.first)
-    
-    def append(self, item):
-        # add in the end
-        last = Node(item)
-        if not self.first:
-            self.first = last
-            return
-        current = self.first
-        while current.next:
-            current = current.next
-        current.next = last
-
-    def pop(self):
-        item = self.first.item
-        self.first = self.first.next
-        return item
-
-
-class LinkedListStack:
+class Stack:
     def __init__(self):
         self.first = None
         self.N = 0
-
-    def is_empty(self):
-        return self.first is None
 
     def push(self, item):
         self.first = Node(item, self.first)
@@ -50,26 +19,29 @@ class LinkedListStack:
         self.N -= 1
         return item
 
+    def is_empty(self):
+        return self.first is None
+
+    def size(self):
+        return self.N
+
     def tolist(self):
         values = []
         current = self.first
-        while current != None:
+        while current is not None:
             values.append(current.item)
             current = current.next
-        return values       
+        return values
 
     def __str__(self):
-        values = self.tolist()
-        return '->'.join([str(i) for i in values])
+        return '->'.join([str(i) for i in self.tolist()])
 
 
-class LinkedListQueue:
+class Queue:
     def __init__(self):
         self.first = None
         self.last = None
-
-    def is_empty(self):
-        return self.first is None
+        self.N = 0
 
     def enqueue(self, item):
         if self.is_empty():
@@ -79,25 +51,32 @@ class LinkedListQueue:
             oldlast = self.last
             self.last = Node(item)
             oldlast.next = self.last
+        self.N += 1
 
     def dequeue(self):
         item = self.first.item
         self.first = self.first.next
         if self.is_empty():
             self.last = None
+        self.N -= 1
         return item
+
+    def is_empty(self):
+        return self.first is None
+
+    def size(self):
+        return self.N
 
     def tolist(self):
         values = []
         current = self.first
-        while current != None:
+        while current is not None:
             values.append(current.item)
             current = current.next
-        return values       
+        return values
 
     def __str__(self):
-        values = self.tolist()
-        return '->'.join([str(i) for i in values])
+        return '->'.join([str(i) for i in self.tolist()])
 
 
 class PriorityQueueBinaryHeapMax:
@@ -105,20 +84,20 @@ class PriorityQueueBinaryHeapMax:
     binary heap implementation of max-oriented priority queue
     '''
     def __init__(self):
-        self.N = 0
         self.pq = [None]  # the index start at 1
+        self.N = 0
 
     def insert(self, x):
         self.pq.append(x)
         self.N += 1
-        self.swim(self.N)
-    
+        self._swim(self.N)
+
     def del_max(self):
-        self.pq[1], self.pq[-1] = self.pq[-1], self.pq[1]
-        max = self.pq.pop()
+        self._exch(1, -1)
+        max_ = self.pq.pop()
         self.N -= 1
-        self.sink(1)
-        return max
+        self._sink(1)
+        return max_
 
     def is_empty(self):
         return self.N == 0
@@ -129,53 +108,58 @@ class PriorityQueueBinaryHeapMax:
     def size(self):
         return self.N
 
-    def swim(self, k):
-        # exchange key in child with the key in parent
-        # when child's key becomes larger than its parent's key
-        # note that swim preserves the binary heap of the parent's another node
-        # used after insertion, with complexity logN compares
-        while (k > 1) and self.less(k // 2, k):
-            self.pq[k//2], self.pq[k] = self.pq[k], self.pq[k//2]
+    def _swim(self, k):
+        '''
+        Exchange key in child with the key in parent,
+        when child's key becomes larger than its parent's key.
+        Repeat until heap order restored
+        '''
+        while (k > 1) and self._less(k // 2, k):
+            self._exch(k // 2, k)
             k = k // 2
 
-    def sink(self, k):
-        # exchange key in parent with key in the larger children
-        # used after exchange
-        # sink preserve the binary heap in the subtree
-        # complexity 2logN compares
+    def _sink(self, k):
+        '''
+        Exchange key in parent with key in the larger child,
+        when parent's key becomes smaller than one (or both) of its children's.
+        Repeat until heap order restored
+        '''
         while 2*k <= self.N:
             j = k * 2
-            if j < self.N and self.less(j, j+1):
+            if j < self.N and self._less(j, j+1):
                 j += 1
-            if self.less(k, j):
-                self.pq[j], self.pq[k] = self.pq[k], self.pq[j]
+            if self._less(k, j):
+                self._exch(k, j)
             else:
                 break
             k = j
 
-    def less(self, i, j):
+    def _less(self, i, j):
         return self.pq[i] < self.pq[j]
+
+    def _exch(self, i, j):
+        self.pq[i], self.pq[j] = self.pq[j], self.pq[i]
 
 
 class PriorityQueueBinaryHeapMin:
     '''
-    binary heap implementation of max-oriented priority queue
+    binary heap implementation of min-oriented priority queue
     '''
     def __init__(self):
-        self.N = 0
         self.pq = [None]  # the index start at 1
+        self.N = 0
 
     def insert(self, x):
         self.pq.append(x)
         self.N += 1
-        self.swim(self.N)
+        self._swim(self.N)
 
     def del_min(self):
-        self.pq[1], self.pq[-1] = self.pq[-1], self.pq[1]
-        min = self.pq.pop()
+        self._exch(1, -1)
+        min_ = self.pq.pop()
         self.N -= 1
-        self.sink(1)
-        return min
+        self._sink(1)
+        return min_
 
     def is_empty(self):
         return self.N == 0
@@ -186,29 +170,34 @@ class PriorityQueueBinaryHeapMin:
     def size(self):
         return self.N
 
-    def swim(self, k):
-        # exchange key in child with the key in parent
-        # when child's key becomes larger than its parent's key
-        # note that swim preserves the binary heap of the parent's another node
-        # used after insertion, with complexity logN compares
-        while (k > 1) and self.greater(k // 2, k):
-            self.pq[k//2], self.pq[k] = self.pq[k], self.pq[k//2]
+    def _swim(self, k):
+        '''
+        Exchange key in child with the key in parent,
+        when child's key becomes smaller than its parent's key.
+        Repeat until heap order restored
+        '''
+        while (k > 1) and self._greater(k // 2, k):
+            self._exch(k // 2, k)
             k = k // 2
 
-    def sink(self, k):
-        # exchange key in parent with key in the larger children
-        # used after exchange
-        # sink preserve the binary heap in the subtree
-        # complexity 2logN compares
+    def _sink(self, k):
+        '''
+        Exchange key in parent with key in the larger child,
+        when parent's key becomes greater than one (or both) of its children's.
+        Repeat until heap order restored
+        '''
         while 2*k <= self.N:
             j = k * 2
-            if j < self.N and self.greater(j, j+1):
+            if j < self.N and self._greater(j, j+1):
                 j += 1
-            if self.greater(k, j):
-                self.pq[j], self.pq[k] = self.pq[k], self.pq[j]
+            if self._greater(k, j):
+                self._exch(k, j)
             else:
                 break
             k = j
 
-    def greater(self, i, j):
+    def _greater(self, i, j):
         return self.pq[i] > self.pq[j]
+
+    def _exch(self, i, j):
+        self.pq[i], self.pq[j] = self.pq[j], self.pq[i]
